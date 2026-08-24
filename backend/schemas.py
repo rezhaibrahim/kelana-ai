@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -24,6 +26,7 @@ class TripResponse(BaseModel):
     travel_month: str
     category: str
     daily_budget: float
+    ai_recommendation: Optional[str] = None
 
     class Config:
         from_attributes = True
