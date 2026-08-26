@@ -2,9 +2,9 @@ import json
 
 import boto3
 
-MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+MODEL_ID = "amazon.nova-lite-v1:0"
 
-_client = boto3.client("bedrock-runtime", region_name="us-east-1")
+_client = boto3.client("bedrock-runtime", region_name="ap-southeast-2")
 
 
 def generate_itinerary(destination, country, days, budget, currency, travel_month, category):
@@ -48,12 +48,11 @@ Repeat this structure for all {days} days. Keep recommendations specific, realis
         modelId=MODEL_ID,
         body=json.dumps(
             {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 4096,
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "system": [{"text": "You are a professional travel planner."}],
             }
         ),
     )
 
     body = json.loads(response["body"].read())
-    return body["content"][0]["text"]
+    return body["output"]["message"]["content"][0]["text"]
