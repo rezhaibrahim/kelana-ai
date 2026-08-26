@@ -10,6 +10,7 @@ class TripCreate(BaseModel):
     budget: float
     currency: str
     travel_month: str
+    travel_style: str = "Solo"
 
 
 class TripUpdate(BaseModel):
@@ -24,6 +25,7 @@ class TripResponse(BaseModel):
     budget: float
     currency: str
     travel_month: str
+    travel_style: str
     category: str
     daily_budget: float
     ai_recommendation: Optional[str] = None

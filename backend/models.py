@@ -13,6 +13,7 @@ class Trip(Base):
     budget = Column(Float, nullable=False)
     currency = Column(String, nullable=False)
     travel_month = Column(String, nullable=False)
+    travel_style = Column(String, nullable=False, server_default="Solo")
     category = Column(String, nullable=False)
     daily_budget = Column(Float, nullable=False)
     ai_recommendation = Column(Text, nullable=True)

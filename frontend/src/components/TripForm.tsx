@@ -18,6 +18,7 @@ export default function TripForm() {
     budget: "",
     currency: "USD",
     travel_month: "",
+    travel_style: "Solo",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,6 +145,18 @@ export default function TripForm() {
             placeholder="December"
             className={inputClass}
           />
+        </Field>
+
+        <Field label="Travel Style">
+          <select
+            value={form.travel_style}
+            onChange={handleChange("travel_style")}
+            className={inputClass}
+          >
+            <option value="Solo">Solo</option>
+            <option value="Couple">Couple</option>
+            <option value="Family">Family</option>
+          </select>
         </Field>
 
         <div className="sm:col-span-2">

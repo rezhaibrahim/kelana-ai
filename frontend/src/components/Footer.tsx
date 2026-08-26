@@ -1,5 +1,6 @@
 const NAV_LINKS = [
   { label: "Home", href: "/" },
+  { label: "Trip History", href: "/trips" },
   { label: "About", href: "#about" },
   { label: "Contact", href: "#contact" },
 ];
