@@ -1,24 +1,46 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import TripCard from "@/components/TripCard";
+import RequireAuth from "@/components/RequireAuth";
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, authHeaders } from "@/lib/api";
 import type { Trip } from "@/lib/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const PAGE_SIZE = 10;
 
-export default function TripsDashboard() {
+export default function TripsPage() {
+  return (
+    <RequireAuth>
+      <TripsDashboard />
+    </RequireAuth>
+  );
+}
+
+function TripsDashboard() {
+  const { token, logout } = useAuth();
+  const router = useRouter();
+
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
+    if (!token) return;
     let cancelled = false;
 
     async function loadTrips() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/trips`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/trips`, {
+          headers: authHeaders(token),
+        });
+        if (res.status === 401) {
+          logout();
+          router.push("/login");
+          return;
+        }
         if (!res.ok) throw new Error("Failed to load trips");
         const data = await res.json();
         if (!cancelled) setTrips(data);
@@ -33,7 +55,7 @@ export default function TripsDashboard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [token, logout, router]);
 
   const totalPages = Math.max(1, Math.ceil(trips.length / PAGE_SIZE));
 

@@ -1,6 +1,29 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
 class TripCreate(BaseModel):
@@ -19,6 +42,7 @@ class TripUpdate(BaseModel):
 
 class TripResponse(BaseModel):
     id: int
+    user_id: int
     destination: str
     country: str
     days: int

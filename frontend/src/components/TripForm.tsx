@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+import { useRouter } from "next/navigation";
+import { Field, inputClass } from "@/components/FormField";
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL, authHeaders } from "@/lib/api";
 
 type TripResult = {
   category: string;
@@ -11,6 +13,9 @@ type TripResult = {
 };
 
 export default function TripForm() {
+  const { token, logout } = useAuth();
+  const router = useRouter();
+
   const [form, setForm] = useState({
     destination: "",
     country: "",
@@ -30,6 +35,11 @@ export default function TripForm() {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
+  const handleUnauthorized = () => {
+    logout();
+    router.push("/login");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -39,7 +49,7 @@ export default function TripForm() {
     try {
       const createRes = await fetch(`${API_BASE_URL}/api/v1/trips`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders(token) },
         body: JSON.stringify({
           ...form,
           days: Number(form.days),
@@ -47,14 +57,16 @@ export default function TripForm() {
         }),
       });
 
+      if (createRes.status === 401) return handleUnauthorized();
       if (!createRes.ok) throw new Error("Failed to create trip");
       const trip = await createRes.json();
 
       const generateRes = await fetch(
         `${API_BASE_URL}/api/v1/trips/${trip.id}/generate`,
-        { method: "POST" }
+        { method: "POST", headers: authHeaders(token) }
       );
 
+      if (generateRes.status === 401) return handleUnauthorized();
       if (!generateRes.ok) throw new Error("Failed to generate itinerary");
       const generated = await generateRes.json();
       setResult(generated);
@@ -190,17 +202,5 @@ export default function TripForm() {
         </div>
       )}
     </div>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      {children}
-    </label>
   );
 }

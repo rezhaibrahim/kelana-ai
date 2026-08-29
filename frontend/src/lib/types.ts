@@ -1,8 +1,14 @@
 export type TripCategory = "Backpacker" | "Standard" | "Luxury";
 export type TravelStyle = "Family" | "Solo" | "Couple";
 
+export type User = {
+  id: number;
+  email: string;
+};
+
 export type Trip = {
   id: number;
+  user_id: number;
   destination: string;
   country: string;
   days: number;

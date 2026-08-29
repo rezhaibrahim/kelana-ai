@@ -1,6 +1,15 @@
 import TripForm from "@/components/TripForm";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function Home() {
+  return (
+    <RequireAuth>
+      <HomeContent />
+    </RequireAuth>
+  );
+}
+
+function HomeContent() {
   return (
     <div className="flex flex-1 flex-col bg-slate-50">
       <section className="relative overflow-hidden bg-gradient-to-br from-sky-600 via-sky-500 to-orange-400 pb-28 pt-20 sm:pb-36 sm:pt-28">
