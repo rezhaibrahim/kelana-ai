@@ -12,6 +12,7 @@ from auth import create_access_token, get_current_user, hash_password, verify_pa
 from database import Base, engine, get_db
 from services.trip_service import get_trip_category, calculate_daily_budget
 from services.bedrock_service import generate_itinerary
+from services.knowledge_base_service import ask_knowledge_base
 
 Base.metadata.create_all(bind=engine)
 
@@ -55,6 +56,15 @@ def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
     return schemas.Token(access_token=create_access_token(user))
+
+
+@app.post("/api/v1/ask", response_model=schemas.AskResponse)
+def ask(
+    payload: schemas.AskRequest,
+    current_user: models.User = Depends(get_current_user),
+):
+    answer = ask_knowledge_base(payload.question)
+    return schemas.AskResponse(question=payload.question, answer=answer)
 
 
 @app.post("/api/v1/trips", response_model=schemas.TripResponse)

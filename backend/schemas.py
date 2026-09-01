@@ -26,6 +26,15 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class AskRequest(BaseModel):
+    question: str
+
+
+class AskResponse(BaseModel):
+    question: str
+    answer: str
+
+
 class TripCreate(BaseModel):
     destination: str
     country: str
