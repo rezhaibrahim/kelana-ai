@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
@@ -33,6 +34,44 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     question: str
     answer: str
+
+
+class MessageResponse(BaseModel):
+    id: int
+    conversation_id: int
+    role: str
+    content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationCreate(BaseModel):
+    content: str
+
+
+class ConversationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationDetailResponse(ConversationResponse):
+    messages: list[MessageResponse] = []
+
+
+class SendMessageRequest(BaseModel):
+    content: str
+
+
+class SendMessageResponse(BaseModel):
+    user_message: MessageResponse
+    assistant_message: MessageResponse
 
 
 class TripCreate(BaseModel):

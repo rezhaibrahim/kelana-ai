@@ -12,7 +12,7 @@ from auth import create_access_token, get_current_user, hash_password, verify_pa
 from database import Base, engine, get_db
 from services.trip_service import get_trip_category, calculate_daily_budget
 from services.bedrock_service import generate_itinerary
-from services.knowledge_base_service import ask_knowledge_base
+from services.knowledge_base_service import ask_knowledge_base, ask_knowledge_base_with_history
 
 Base.metadata.create_all(bind=engine)
 
@@ -65,6 +65,107 @@ def ask(
 ):
     answer = ask_knowledge_base(payload.question)
     return schemas.AskResponse(question=payload.question, answer=answer)
+
+
+def _build_title(content: str) -> str:
+    stripped = content.strip()
+    return stripped if len(stripped) <= 50 else stripped[:50] + "..."
+
+
+@app.post("/api/v1/conversations", response_model=schemas.ConversationDetailResponse, status_code=201)
+def create_conversation(
+    payload: schemas.ConversationCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    conversation = models.Conversation(user_id=current_user.id, title=_build_title(payload.content))
+    db.add(conversation)
+    db.commit()
+    db.refresh(conversation)
+
+    user_message = models.Message(conversation_id=conversation.id, role="user", content=payload.content)
+    db.add(user_message)
+    db.commit()
+
+    answer = ask_knowledge_base_with_history(payload.content, history=[])
+
+    assistant_message = models.Message(conversation_id=conversation.id, role="assistant", content=answer)
+    db.add(assistant_message)
+    db.commit()
+
+    conversation.messages = (
+        db.query(models.Message)
+        .filter(models.Message.conversation_id == conversation.id)
+        .order_by(models.Message.created_at.asc())
+        .all()
+    )
+    return conversation
+
+
+@app.get("/api/v1/conversations", response_model=list[schemas.ConversationResponse])
+def list_conversations(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return (
+        db.query(models.Conversation)
+        .filter(models.Conversation.user_id == current_user.id)
+        .order_by(models.Conversation.created_at.desc())
+        .all()
+    )
+
+
+@app.get("/api/v1/conversations/{conversation_id}", response_model=schemas.ConversationDetailResponse)
+def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    conversation = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+    if conversation is None or conversation.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    conversation.messages = (
+        db.query(models.Message)
+        .filter(models.Message.conversation_id == conversation_id)
+        .order_by(models.Message.created_at.asc())
+        .all()
+    )
+    return conversation
+
+
+@app.post("/api/v1/conversations/{conversation_id}/messages", response_model=schemas.SendMessageResponse)
+def send_message(
+    conversation_id: int,
+    payload: schemas.SendMessageRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    conversation = db.query(models.Conversation).filter(models.Conversation.id == conversation_id).first()
+    if conversation is None or conversation.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    prior_messages = (
+        db.query(models.Message)
+        .filter(models.Message.conversation_id == conversation_id)
+        .order_by(models.Message.created_at.asc())
+        .all()
+    )
+    history = [{"role": m.role, "content": m.content} for m in prior_messages]
+
+    user_message = models.Message(conversation_id=conversation_id, role="user", content=payload.content)
+    db.add(user_message)
+    db.commit()
+    db.refresh(user_message)
+
+    answer = ask_knowledge_base_with_history(payload.content, history=history)
+
+    assistant_message = models.Message(conversation_id=conversation_id, role="assistant", content=answer)
+    db.add(assistant_message)
+    db.commit()
+    db.refresh(assistant_message)
+
+    return schemas.SendMessageResponse(user_message=user_message, assistant_message=assistant_message)
 
 
 @app.post("/api/v1/trips", response_model=schemas.TripResponse)

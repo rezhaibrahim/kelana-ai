@@ -6,6 +6,32 @@ export type User = {
   email: string;
 };
 
+export type MessageRole = "user" | "assistant";
+
+export type Message = {
+  id: number;
+  conversation_id: number;
+  role: MessageRole;
+  content: string;
+  created_at: string;
+};
+
+export type Conversation = {
+  id: number;
+  user_id: number;
+  title: string;
+  created_at: string;
+};
+
+export type ConversationDetail = Conversation & {
+  messages: Message[];
+};
+
+export type SendMessageResponse = {
+  user_message: Message;
+  assistant_message: Message;
+};
+
 export type Trip = {
   id: number;
   user_id: number;

@@ -46,3 +46,42 @@ Question: {question}"""
 
     body = json.loads(response["body"].read())
     return body["output"]["message"]["content"][0]["text"]
+
+
+def ask_knowledge_base_with_history(question: str, history: list[dict]) -> str:
+    retrieval = _agent_client.retrieve(
+        knowledgeBaseId=KNOWLEDGE_BASE_ID,
+        retrievalQuery={"text": question},
+    )
+
+    chunks = [result["content"]["text"] for result in retrieval.get("retrievalResults", [])]
+    context = "\n\n---\n\n".join(chunks)
+
+    history_text = (
+        "\n".join(f"{turn['role'].capitalize()}: {turn['content']}" for turn in history)
+        if history
+        else "(no previous messages)"
+    )
+
+    prompt = f"""You are KelanaAI's travel assistant. Continue this conversation naturally, using the conversation history to understand context (e.g. pronouns like "it" or "that trip" refer to things mentioned earlier). Answer the new question using ONLY the context below; if the context doesn't contain the answer, say you don't have that information.
+
+Previous conversation:
+{history_text}
+
+Context from documents:
+{context}
+
+New question: {question}"""
+
+    response = _runtime_client.invoke_model(
+        modelId=MODEL_ID,
+        body=json.dumps(
+            {
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "system": [{"text": "You are a helpful travel assistant that answers strictly from the given context and remembers the conversation so far."}],
+            }
+        ),
+    )
+
+    body = json.loads(response["body"].read())
+    return body["output"]["message"]["content"][0]["text"]
